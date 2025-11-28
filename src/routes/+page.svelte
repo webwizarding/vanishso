@@ -119,6 +119,12 @@
       hash = await hashKey(key);
     }
 
+    if (typeof encrypted !== "string" || encrypted.startsWith("Error:")) {
+      imageError = "Could not encrypt the note. Try a smaller attachment or different mode.";
+      loading = false;
+      return;
+    }
+
     try {
       const res = await fetch("/api/new", {
         method: "POST",

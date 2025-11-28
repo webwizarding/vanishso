@@ -6,7 +6,13 @@ export async function generateRandomKey(length: number): Promise<string> {
 
   // Generate random bytes
   const randomBytes = new Uint8Array(length);
-  crypto.getRandomValues(randomBytes);
+  // Web Crypto caps getRandomValues at 65536 bytes per call, so fill in chunks
+  let offset = 0;
+  while (offset < length) {
+    const chunkSize = Math.min(65536, length - offset);
+    crypto.getRandomValues(randomBytes.subarray(offset, offset + chunkSize));
+    offset += chunkSize;
+  }
 
   // Convert the bytes to URL-safe characters
   let key = "";
