@@ -8,6 +8,7 @@
 - Set required environment variables in Vercel: `DATABASE_URL` (Neon postgres connection string). Without it the API will refuse to start.
 - Optional: set `VERCEL_ANALYTICS_ID` if you use Vercel Analytics in production.
 - Run locally with `npm install` (or `bun install`) then `npm run dev`.
+- Notes can include an optional image attachment (PNG/JPEG/WEBP/GIF, up to ~1MB before encryption); attachments are encrypted client-side along with text.
 
 ### Neon schema
 

@@ -3,7 +3,7 @@ import { saveNote } from "$lib/db/save-note.js";
 
 const expiries = ["viewing", "1h", "24h", "7d", "30d"];
 const modes = ["p", "k", "otp"];
-const MAX_BODY_SIZE = 16_000;
+const MAX_BODY_SIZE = 1_800_000; // allow encrypted payloads with small images while protecting Neon free tier
 const HASH_REGEX = /^[a-f0-9]{64}$/i;
 
 export interface NewNote {

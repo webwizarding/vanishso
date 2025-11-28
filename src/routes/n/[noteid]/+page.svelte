@@ -22,11 +22,37 @@
 
   const { noteData } = data;
 
-  let decryptedNoteContent = "";
+  let decryptedNoteText = "";
+  let decryptedImage: string | null = null;
   let decrypted = false;
   let password = "";
   let countdown = "";
   let errorMessage = "";
+  const allowedImageDataUrl =
+    /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/=]+$/i;
+  const MAX_IMAGE_DATA_LENGTH = 1_600_000;
+
+  function setDecryptedContent(raw: string) {
+    try {
+      const parsed = JSON.parse(raw);
+      decryptedNoteText =
+        parsed && typeof parsed.text === "string" ? parsed.text : "";
+      const img =
+        parsed && typeof parsed.image === "string" ? parsed.image : null;
+      if (
+        img &&
+        img.length <= MAX_IMAGE_DATA_LENGTH &&
+        allowedImageDataUrl.test(img)
+      ) {
+        decryptedImage = img;
+      } else {
+        decryptedImage = null;
+      }
+    } catch (e) {
+      decryptedNoteText = raw;
+      decryptedImage = null;
+    }
+  }
 
   async function readNoteWithKey(key: CryptoKey) {
     if (!noteData) return;
@@ -47,7 +73,8 @@
 
       const { content } = await response.json();
 
-      decryptedNoteContent = await decrypt(key, content);
+      const raw = await decrypt(key, content);
+      setDecryptedContent(raw);
       decrypted = true;
       errorMessage = "";
     } catch (e) {
@@ -73,7 +100,8 @@
 
       const { content } = await response.json();
 
-      decryptedNoteContent = await otp(content, key, "decrypt", false);
+      const raw = await otp(content, key, "decrypt", false);
+      setDecryptedContent(raw);
       decrypted = true;
       errorMessage = "";
     } catch (e) {
@@ -205,8 +233,16 @@
         max-height: calc(100vh - 256px);
         --percentage: {fadeOutPercentage};
       "
-          bind:value={decryptedNoteContent}
+          bind:value={decryptedNoteText}
         />
+        {#if decryptedImage}
+          <img
+            src={decryptedImage}
+            alt="Attached"
+            loading="lazy"
+            class="mt-4 max-h-72 w-full rounded-lg border border-[#BC9CFF]/10 object-contain bg-[#16151C]"
+          />
+        {/if}
       </div>
     </div>
   </div>

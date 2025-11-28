@@ -23,9 +23,64 @@
   let mode = "OTP";
 
   let loading = false;
+  let imageDataUrl: string | null = null;
+  let imageName = "";
+  let imageError = "";
+
+  const MAX_IMAGE_BYTES = 1024 * 1024; // 1MB raw
+  const MAX_PAYLOAD_LENGTH = 1_400_000; // ~1.4MB combined text+image before encryption
+  const allowedImageTypes = [
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "image/gif",
+  ];
+
+  function clearImage() {
+    imageDataUrl = null;
+    imageName = "";
+    imageError = "";
+  }
+
+  async function handleImageChange(event: Event) {
+    imageError = "";
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (!file) return;
+
+    if (!allowedImageTypes.includes(file.type)) {
+      imageError = "Only PNG, JPEG, WEBP, or GIF images are allowed.";
+      target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_BYTES) {
+      imageError = "Image must be 1MB or smaller.";
+      target.value = "";
+      return;
+    }
+
+    imageName = file.name;
+
+    imageDataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error("Failed to read image"));
+      reader.readAsDataURL(file);
+    }).catch(() => {
+      imageError = "Could not read the image. Try a different file.";
+      return null;
+    });
+
+    if (!imageDataUrl) {
+      target.value = "";
+    }
+  }
 
   const handleSubmit = async () => {
-    if (noteContent == "") {
+    imageError = "";
+    if (noteContent.trim() === "" && !imageDataUrl) {
+      imageError = "Add text or attach an image.";
       return;
     }
     loading = true;
@@ -36,20 +91,31 @@
     let hash = "";
     let m = "";
 
+    const plainPayload = JSON.stringify({
+      text: noteContent,
+      image: imageDataUrl,
+    });
+
+    if (plainPayload.length > MAX_PAYLOAD_LENGTH) {
+      imageError = "Note (text + image) is too large. Keep it under ~1MB.";
+      loading = false;
+      return;
+    }
+
     if (mode == "OTP") {
       m = "otp";
-      cipherKey = await generateRandomKey(noteContent.length);
-      encrypted = otp(noteContent, cipherKey, "encrypt", false);
+      cipherKey = await generateRandomKey(plainPayload.length);
+      encrypted = otp(plainPayload, cipherKey, "encrypt", false);
     } else if (mode == "Password") {
       m = "p";
       s = await generateSalt();
       key = await deriveKey(customPassword, s);
-      encrypted = await encrypt(key, noteContent);
+      encrypted = await encrypt(key, plainPayload);
       hash = await hashKey(key);
     } else {
       m = "k";
       key = await generateAESKey();
-      encrypted = await encrypt(key, noteContent);
+      encrypted = await encrypt(key, plainPayload);
       hash = await hashKey(key);
     }
 
@@ -107,6 +173,7 @@
     encrypted = "";
     hash = "";
     m = "";
+    clearImage();
 
     loading = false;
   };
@@ -173,6 +240,48 @@
         style="--percentage: {fadeOutPercentage};"
         bind:value={noteContent}
       />
+
+      <div class="flex flex-col gap-2 mt-6">
+        <p class="text-white text-sm font-semibold">Image (optional)</p>
+        <div class="flex flex-wrap items-center gap-3">
+          <label
+            for="image-upload"
+            class="cursor-pointer purple-button bg-[#2D2A3D] hover:bg-[#353349] text-white text-sm font-semibold px-3.5 py-2 rounded-lg border border-[#BC9CFF]/10"
+          >
+            {imageName ? "Change image" : "Attach image"}
+          </label>
+          <input
+            id="image-upload"
+            class="hidden"
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            on:change={handleImageChange}
+          />
+          {#if imageName}
+            <p class="text-primary text-xs break-all">{imageName}</p>
+          {/if}
+          {#if imageDataUrl}
+            <button
+              type="button"
+              class="text-xs text-white/80 underline underline-offset-2 hover:text-white"
+              on:click={clearImage}
+            >
+              Remove
+            </button>
+          {/if}
+        </div>
+        {#if imageDataUrl}
+          <img
+            src={imageDataUrl}
+            alt="Attached"
+            loading="lazy"
+            class="mt-2 max-h-48 rounded-lg border border-[#BC9CFF]/10 object-contain bg-[#16151C]"
+          />
+        {/if}
+        {#if imageError}
+          <p class="text-[13px] text-red-400 font-geist">{imageError}</p>
+        {/if}
+      </div>
 
       <div class="flex gap-1 w-full mt-10">
         <button

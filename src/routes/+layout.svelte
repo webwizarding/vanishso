@@ -10,11 +10,12 @@
   inject({ mode: dev ? "development" : "production" });
 
   const securitySummary =
-    "End-to-end encrypted notes (AES-256-GCM, PBKDF2 or OTP) with single-use links, salted hashing, and strict platform headers.";
+    "End-to-end encrypted notes and optional image attachments (AES-256-GCM, PBKDF2 or OTP) with single-use links, salted hashing, and strict platform headers.";
 
   const securityBullets = [
     "Client-side encryption only; servers never see plaintext or derived keys.",
     "PBKDF2 (100k) password derivation plus salted SHA-256 hashes with constant-time comparison.",
+    "Attachments: PNG/JPEG/WEBP/GIF up to ~1MB, encrypted together with the note.",
     "Ephemeral storage: links can be single-view and are deleted on read or expiry.",
     "Runtime hardening: CSP, HSTS, permissions lockdown, and origin-locked CSRF checks.",
   ];
