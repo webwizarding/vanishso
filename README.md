@@ -1,13 +1,20 @@
 # [vanish.so](https://vanish.so)
 
+Original Owner: [bvvst](https://github.com/bvvst/vanishso)
+
 > a vanishing note service supporting aes-gcm 256, custom passwords via pbkdf2, and one-time pads.
+
+## Changes from original
+- Prebuild sync was introduced, the SvelteKit/Vite/tooling dependencies were raised, and the adapter was switched to Vercel.
+- Neon Postgres replaced libsql with a single DATABASE_URL environment, a new pg schema, and a Neon serverless driver. The necessary notes table SQL was written.
+- CSP/HSTS/Permissions-Policy/COOP headers, origin CSRF checks, stringent JSON validation, size restrictions, constant-time hash comparison, and sanitized metadata are examples of hardened security.
+- To safeguard the Neon free tier, image attachments to notes were added with client-side type/size caps, encrypted together with text, secure rendering with data-URL validation, and stricter payload restrictions.
+- Wired header buttons: contact -> GitHub issues, security modal with feature summary.
+- Enhanced error handling, origin-safe share links, the preservation of booleans by Select, the removal of external font load, and chunked OTP random generation to circumvent Web Crypto restrictions all contribute to an improved user experience.
 
 ## Deploying on Vercel
 
-- Uses `@sveltejs/adapter-vercel`; connect the repo to Vercel and keep the default **Build Command** (`npm run build`) and **Output Directory** (`.vercel/output`, set automatically).
 - Set required environment variables in Vercel: `DATABASE_URL` (Neon postgres connection string). Without it the API will refuse to start.
-- Optional: set `VERCEL_ANALYTICS_ID` if you use Vercel Analytics in production.
-- Run locally with `npm install` (or `bun install`) then `npm run dev`.
 - Notes can include an optional image attachment (PNG/JPEG/WEBP/GIF, up to ~1MB before encryption); attachments are encrypted client-side along with text.
 
 ### Neon schema
@@ -27,9 +34,3 @@ CREATE TABLE IF NOT EXISTS notes (
 );
 ```
 
-## Security posture (zero-trust friendly)
-
-- Client-side only encryption (AES-256-GCM, PBKDF2-derived keys, optional one-time pads). Servers never receive plaintext or user keys.
-- Password-derived keys use PBKDF2 (100k iterations) and salted SHA-256 hashes with constant-time comparison on the server.
-- Notes self-delete after expiry or on first view; identifiers are validated to avoid abuse.
-- Platform hardening: CSP, HSTS, permissions lockdown headers, and strict origin checks for CSRF baked into SvelteKit.
