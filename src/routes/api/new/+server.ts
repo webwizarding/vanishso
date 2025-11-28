@@ -4,6 +4,7 @@ import { saveNote } from "$lib/db/save-note.js";
 const expiries = ["viewing", "1h", "24h", "7d", "30d"];
 const modes = ["p", "k", "otp"];
 const MAX_BODY_SIZE = 16_000;
+const HASH_REGEX = /^[a-f0-9]{64}$/i;
 
 export interface NewNote {
   confirmBeforeViewing: boolean;
@@ -31,14 +32,7 @@ export async function POST({ request }) {
     return new Response(null, { status: 400 });
   }
 
-  const {
-    mode,
-    encrypted,
-    exp,
-    h,
-    confirmBeforeViewing,
-    s = "",
-  } = payload;
+  const { mode, encrypted, exp, h, confirmBeforeViewing, s = "" } = payload;
 
   if (
     typeof encrypted !== "string" ||
@@ -48,12 +42,16 @@ export async function POST({ request }) {
     return new Response(null, { status: 400 });
   }
 
-  if (typeof h !== "string" || h.length > 256) {
-    return new Response(null, { status: 400 });
+  if (mode !== "otp") {
+    if (typeof h !== "string" || !HASH_REGEX.test(h)) {
+      return new Response(null, { status: 400 });
+    }
   }
 
-  if (typeof s !== "string" || s.length > 512) {
-    return new Response(null, { status: 400 });
+  if (mode === "p") {
+    if (typeof s !== "string" || s.length === 0 || s.length > 64) {
+      return new Response(null, { status: 400 });
+    }
   }
 
   if (!expiries.includes(exp)) {
@@ -64,8 +62,11 @@ export async function POST({ request }) {
     return new Response(null, { status: 400 });
   }
 
+  const confirmFlag =
+    typeof confirmBeforeViewing === "boolean" ? confirmBeforeViewing : false;
+
   const shouldConfirm =
-    mode === "p" || exp !== "viewing" ? true : Boolean(confirmBeforeViewing);
+    mode === "p" || exp !== "viewing" ? true : confirmFlag;
 
   const newNote = {
     confirmBeforeViewing: shouldConfirm,

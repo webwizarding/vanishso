@@ -173,7 +173,6 @@ export function otp(
   // The message and key must not be empty.
   if (message === "" || key === "") {
     error = "Error: The message and key must not be be empty.";
-    console.log("[OneTimePad.js] " + error);
     return error;
   }
   // Convert the message and key to number-encoded strings using the codebook.
@@ -186,7 +185,6 @@ export function otp(
       codeMessage = message;
     } else {
       error = "Error: When decrypting, the message must only contain numbers.";
-      console.log("[OneTimePad.js] " + error);
       return error;
     }
   }
@@ -195,18 +193,12 @@ export function otp(
     // If the key is shorter than the message and the keyRepetition flag is true, then repeat the key until it's long enough.
     // This is NOT secure. For serious usage, the keyRepetition flag should never be set to true and the key should always be long enough.
     if (keyRepetition === true) {
-      if (mode == "encrypt") {
-        console.log(
-          "[OneTimePad.js] WARNING: The key is shorter than the message.\nThe keyRepetition flag has been set, so OneTimePad.js will now repeat the key until it's long enough, but this is not secure. Repetition of the key will cause statistical patterns in the ciphertext that will make it easier for a third party to decrypt it without the key. You really should use a key at that's least the same length as the message."
-        );
-      }
       while (codeKey.length < codeMessage.length) {
         codeKey += codeKey;
       }
       // Otherwise, if the key is too short, fail with an error.
     } else {
       error = "Error: The key is shorter than the message.";
-      console.log("[OneTimePad.js] " + error);
       return error;
     }
   }

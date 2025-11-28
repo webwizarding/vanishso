@@ -53,42 +53,49 @@
       hash = await hashKey(key);
     }
 
-    const res = await fetch("/api/new", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        mode: m,
-        encrypted: encrypted,
-        exp: expiry,
-        h: hash,
-        confirmBeforeViewing: confirmBeforeViewing,
-        s: s,
-      }),
-    });
+    try {
+      const res = await fetch("/api/new", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          mode: m,
+          encrypted: encrypted,
+          exp: expiry,
+          h: hash,
+          confirmBeforeViewing: confirmBeforeViewing,
+          s: s,
+        }),
+      });
 
-    const { noteid } = await res.json();
+      const { noteid } = await res.json();
 
-    if (!res.ok) {
-      // do error handling
-      loading = false;
-      return;
-    }
-
-    if (mode == "OTP") {
-      noteUrl = window.location.href + "n/" + noteid + "#" + cipherKey;
-    } else if (mode == "Password") {
-      noteUrl = window.location.href + "n/" + noteid;
-    } else {
-      if (!key) {
-        // do some error handling here
+      if (!res.ok || !noteid) {
+        // do error handling
         loading = false;
         return;
       }
-      const _keyString = await keyToString(key);
-      if (!_keyString) return;
-      noteUrl = window.location.href + "n/" + noteid + "#" + _keyString;
+
+      const base = window.location.origin;
+
+      if (mode == "OTP") {
+        noteUrl = `${base}/n/${noteid}#${cipherKey}`;
+      } else if (mode == "Password") {
+        noteUrl = `${base}/n/${noteid}`;
+      } else {
+        if (!key) {
+          // do some error handling here
+          loading = false;
+          return;
+        }
+        const _keyString = await keyToString(key);
+        if (!_keyString) return;
+        noteUrl = `${base}/n/${noteid}#${_keyString}`;
+      }
+    } catch (error) {
+      loading = false;
+      return;
     }
 
     // clear memory of sensitive data to be safe

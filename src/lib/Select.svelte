@@ -15,7 +15,7 @@
 
   <select class="px-2.5 pr-7 py-1" bind:value>
     {#each options as option, i}
-      <option selected={i == 0}>{option}</option>
+      <option value={option} selected={i == 0}>{option}</option>
     {/each}
   </select>
 </div>

@@ -5,6 +5,7 @@ import { timingSafeEqual } from "node:crypto";
 import { Buffer } from "node:buffer";
 
 const NOTE_ID_REGEX = /^[A-Za-z0-9_-]{6,32}$/;
+const HASH_REGEX = /^[a-f0-9]{64}$/i;
 
 export async function POST({ request }) {
   if (
@@ -41,14 +42,14 @@ export async function POST({ request }) {
     return json({ content: note.encrypted });
   }
 
-  if (typeof auth !== "string" || auth.length !== 64) {
+  if (typeof auth !== "string" || !HASH_REGEX.test(auth)) {
     return new Response(null, { status: 400 });
   }
 
   const sh = await hash(auth, note.ss);
   const isEqual =
     sh.length === note.h.length &&
-    timingSafeEqual(Buffer.from(sh), Buffer.from(note.h));
+    timingSafeEqual(Buffer.from(sh, "hex"), Buffer.from(note.h, "hex"));
 
   if (!isEqual) {
     return json({}, { status: 401 });

@@ -33,9 +33,11 @@ export async function getNoteData(id: string) {
   }
 
   const noteData = {
-    ...note,
-    encrypted: "",
-    hash: "",
+    id: note.id,
+    confirmBeforeViewing: Boolean(note.confirmBeforeViewing),
+    mode: note.mode,
+    exp: note.exp,
+    cs: note.cs,
   };
 
   return noteData;

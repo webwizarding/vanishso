@@ -10,9 +10,7 @@
     id: string;
     confirmBeforeViewing: boolean;
     mode: "p" | "k" | "otp";
-    encrypted: "";
     exp: number;
-    h: string;
     cs: string;
   }
 
@@ -28,6 +26,7 @@
   let decrypted = false;
   let password = "";
   let countdown = "";
+  let errorMessage = "";
 
   async function readNoteWithKey(key: CryptoKey) {
     if (!noteData) return;
@@ -50,9 +49,9 @@
 
       decryptedNoteContent = await decrypt(key, content);
       decrypted = true;
+      errorMessage = "";
     } catch (e) {
-      //handle the error
-      console.error(e);
+      errorMessage = "Could not decrypt the note. Double-check the key.";
     }
   }
 
@@ -76,30 +75,30 @@
 
       decryptedNoteContent = await otp(content, key, "decrypt", false);
       decrypted = true;
+      errorMessage = "";
     } catch (e) {
-      //handle the error
-      console.error(e);
+      errorMessage = "Could not decrypt the note. Double-check the key.";
     }
   }
 
   async function viewNote() {
     if (!noteData) return;
+    errorMessage = "";
 
     if (noteData.mode == "otp") {
       const fragment = window.location.href.split("#")[1] || "";
       if (fragment == "") {
-        console.log("bruh");
+        errorMessage = "Missing OTP key fragment in the URL.";
         return;
       }
       await readNoteWithCipherKey(fragment);
     } else if (noteData.mode == "p") {
       const key = await deriveKey(password, noteData.cs);
-      console.log("reading with key: ", await keyToString(key));
       await readNoteWithKey(key);
     } else {
       const fragment = window.location.href.split("#")[1] || "";
       if (fragment == "") {
-        console.log("bruh");
+        errorMessage = "Missing encryption key fragment in the URL.";
         return;
       }
       const key = await stringToKey(fragment);
@@ -187,7 +186,6 @@
           bind:this={textArea}
           on:scroll={() => {
             if (textArea.scrollTop > 0) {
-              console.log("true");
               showFadeOut = true;
 
               // calculate the percentage of the textArea height equivalent to 20px
@@ -242,6 +240,9 @@
           class=" bg-[#16151C] w-full font-geist focus:border-orchid text-sm rounded-lg border border-[#BC9CFF]/10 text-primary selection:bg-orchid/40 placeholder:text-primary/60 disabled:placeholder:text-[#7059a9]/50 px-2.5 py-2 focus:outline-none"
           type="text"
         />
+      {/if}
+      {#if errorMessage}
+        <p class="text-[13px] text-red-400 font-geist mt-2">{errorMessage}</p>
       {/if}
       <button
         on:click={viewNote}
