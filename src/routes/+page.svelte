@@ -55,6 +55,9 @@
 
     const res = await fetch("/api/new", {
       method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
       body: JSON.stringify({
         mode: m,
         encrypted: encrypted,

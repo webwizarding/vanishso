@@ -1,9 +1,9 @@
 import { json } from "@sveltejs/kit";
-import { readNote } from "$lib/db/read-note";
 import { saveNote } from "$lib/db/save-note.js";
 
 const expiries = ["viewing", "1h", "24h", "7d", "30d"];
 const modes = ["p", "k", "otp"];
+const MAX_BODY_SIZE = 16_000;
 
 export interface NewNote {
   confirmBeforeViewing: boolean;
@@ -15,8 +15,46 @@ export interface NewNote {
 }
 
 export async function POST({ request }) {
-  let { mode, encrypted, exp, h, confirmBeforeViewing, s }: NewNote =
-    await request.json();
+  if (
+    !request.headers
+      .get("content-type")
+      ?.toLowerCase()
+      .includes("application/json")
+  ) {
+    return new Response(null, { status: 415 });
+  }
+
+  let payload: Partial<NewNote>;
+  try {
+    payload = await request.json();
+  } catch (error) {
+    return new Response(null, { status: 400 });
+  }
+
+  const {
+    mode,
+    encrypted,
+    exp,
+    h,
+    confirmBeforeViewing,
+    s = "",
+  } = payload;
+
+  if (
+    typeof encrypted !== "string" ||
+    encrypted.length === 0 ||
+    encrypted.length > MAX_BODY_SIZE
+  ) {
+    return new Response(null, { status: 400 });
+  }
+
+  if (typeof h !== "string" || h.length > 256) {
+    return new Response(null, { status: 400 });
+  }
+
+  if (typeof s !== "string" || s.length > 512) {
+    return new Response(null, { status: 400 });
+  }
 
   if (!expiries.includes(exp)) {
     return new Response(null, { status: 400 });
@@ -26,23 +64,24 @@ export async function POST({ request }) {
     return new Response(null, { status: 400 });
   }
 
-  if (mode == "p") {
-    confirmBeforeViewing = true;
-  }
-  if (exp !== "viewing") {
-    confirmBeforeViewing = true;
-  }
+  const shouldConfirm =
+    mode === "p" || exp !== "viewing" ? true : Boolean(confirmBeforeViewing);
 
   const newNote = {
-    confirmBeforeViewing: confirmBeforeViewing,
-    mode: mode,
-    encrypted: encrypted,
-    exp: exp,
-    h: h,
-    s: s,
+    confirmBeforeViewing: shouldConfirm,
+    mode,
+    encrypted,
+    exp,
+    h,
+    s,
   };
 
-  const noteId = await saveNote(newNote);
+  try {
+    const noteId = await saveNote(newNote);
 
-  return json({ noteid: noteId });
+    return json({ noteid: noteId }, { status: 201 });
+  } catch (error) {
+    console.error("Failed to persist note", error);
+    return new Response(null, { status: 500 });
+  }
 }

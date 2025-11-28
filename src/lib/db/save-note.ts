@@ -15,6 +15,10 @@ export async function saveNote({
   h,
   s,
 }: NewNote) {
+  if (!env.DATABASE_HOST || !env.DATABASE_TOKEN) {
+    throw new Error("DATABASE_HOST and DATABASE_TOKEN must be configured");
+  }
+
   const client = createClient({
     url: env.DATABASE_HOST,
     authToken: env.DATABASE_TOKEN,
@@ -54,9 +58,9 @@ export async function saveNote({
 
   try {
     await db.insert(notes).values(note);
+    return noteId;
   } catch (e) {
-    console.error(e);
+    console.error("Failed to write note to database", e);
+    throw e;
   }
-
-  return noteId;
 }
