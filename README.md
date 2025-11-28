@@ -5,9 +5,26 @@
 ## Deploying on Vercel
 
 - Uses `@sveltejs/adapter-vercel`; connect the repo to Vercel and keep the default **Build Command** (`npm run build`) and **Output Directory** (`.vercel/output`, set automatically).
-- Set required environment variables in Vercel: `DATABASE_HOST` (libsql/turso URL) and `DATABASE_TOKEN` (auth token). Without them the API will refuse to start.
+- Set required environment variables in Vercel: `DATABASE_URL` (Neon postgres connection string). Without it the API will refuse to start.
 - Optional: set `VERCEL_ANALYTICS_ID` if you use Vercel Analytics in production.
 - Run locally with `npm install` (or `bun install`) then `npm run dev`.
+
+### Neon schema
+
+If you need to provision the table manually on Neon, run:
+
+```sql
+CREATE TABLE IF NOT EXISTS notes (
+  id varchar(256) PRIMARY KEY,
+  "confirmBeforeViewing" boolean NOT NULL,
+  mode varchar(16) NOT NULL,
+  encrypted text NOT NULL,
+  exp bigint NOT NULL,
+  h varchar(256) NOT NULL,
+  cs varchar(256) NOT NULL,
+  ss varchar(256) NOT NULL
+);
+```
 
 ## Security posture (zero-trust friendly)
 

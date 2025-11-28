@@ -1,11 +1,11 @@
-import { drizzle } from "drizzle-orm/libsql";
+import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "$lib/db/schema";
 import { env } from "$env/dynamic/private";
 import { notes } from "$lib/db/schema";
 import ShortUniqueId from "short-unique-id";
 import type { NewNote } from "../../routes/api/new/+server";
 import { generateSalt, hash } from "$lib";
-import { createClient } from "@libsql/client";
+import { neon } from "@neondatabase/serverless";
 
 export async function saveNote({
   confirmBeforeViewing,
@@ -15,16 +15,12 @@ export async function saveNote({
   h,
   s,
 }: NewNote) {
-  if (!env.DATABASE_HOST || !env.DATABASE_TOKEN) {
-    throw new Error("DATABASE_HOST and DATABASE_TOKEN must be configured");
+  if (!env.DATABASE_URL) {
+    throw new Error("DATABASE_URL must be configured for Neon");
   }
 
-  const client = createClient({
-    url: env.DATABASE_HOST,
-    authToken: env.DATABASE_TOKEN,
-  });
-
-  const db = drizzle(client, { schema });
+  const sql = neon(env.DATABASE_URL);
+  const db = drizzle(sql, { schema });
 
   // generate id
   const uid = new ShortUniqueId({ length: 10 });
