@@ -1,6 +1,6 @@
 <script lang="ts">
   import clsx from "clsx";
-  import { otp, generateRandomKey } from "$lib/otp";
+  import { otp, generateRandomKey, canEncode } from "$lib/otp";
   import OptionsIcon from "$lib/assets/options.svg";
   import Modal from "$lib/Modal.svelte";
   import {
@@ -20,7 +20,9 @@
   let customPassword = "";
   let expiry = "viewing";
   let confirmBeforeViewing = true;
-  let mode = "OTP";
+  // Default to AES-256-GCM: the strongest, simplest mode (random 256-bit key in
+  // the URL fragment, no homebrew crypto).
+  let mode = "AES";
 
   let loading = false;
   let imageDataUrl: string | null = null;
@@ -103,6 +105,15 @@
     }
 
     if (mode == "OTP") {
+      // OTP only supports the codebook character set; encoding silently drops
+      // anything else (e.g. emoji, many accented letters) and would corrupt the
+      // note. Reject up front and point the user at a lossless mode.
+      if (!canEncode(plainPayload)) {
+        imageError =
+          "OTP mode supports a limited character set. Use AES or Password mode for this note.";
+        loading = false;
+        return;
+      }
       m = "otp";
       cipherKey = await generateRandomKey(plainPayload.length);
       encrypted = otp(plainPayload, cipherKey, "encrypt", false);
@@ -201,7 +212,7 @@
   let showOptions = false;
 
   const expiryOptions = ["viewing", "1h", "24h", "7d", "30d"];
-  const modeOptions = ["OTP", "AES", "Password"];
+  const modeOptions = ["AES", "OTP", "Password"];
 
   function onCustomPasswordChange() {
     if (customPassword !== "") {

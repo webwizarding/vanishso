@@ -14,7 +14,7 @@
 
   const securityBullets = [
     "Client-side encryption only; servers never see plaintext or derived keys.",
-    "PBKDF2 (100k) password derivation plus salted SHA-256 hashes with constant-time comparison.",
+    "PBKDF2 (600k) password derivation plus salted SHA-256 hashes with constant-time comparison.",
     "Attachments: PNG/JPEG/WEBP/GIF up to ~1MB, encrypted together with the note.",
     "Ephemeral storage: links can be single-view and are deleted on read or expiry.",
     "Runtime hardening: CSP, HSTS, permissions lockdown, and origin-locked CSRF checks.",
@@ -49,6 +49,11 @@
   />
   <meta name="twitter:image" content="https://www.vanish.so/og.png" />
 </svelte:head>
+<svelte:window
+  on:keydown={(e) => {
+    if (showSecurity && e.key === "Escape") showSecurity = false;
+  }}
+/>
 <main
   class="w-screen h-screen overflow-hidden flex flex-col items-center relative"
 >
@@ -123,15 +128,19 @@
   </script>
 
   {#if showSecurity}
+    <!-- Backdrop closes the dialog on click; keyboard users have Escape (window
+         handler) and the Close button, so the click handler is a convenience. -->
+    <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
     <div
       class="fixed inset-0 z-30 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Security summary"
+      role="presentation"
       on:click={() => (showSecurity = false)}
     >
       <div
         class="max-w-xl w-full"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Security summary"
         on:click|stopPropagation
       >
         <Modal>

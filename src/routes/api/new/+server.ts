@@ -1,19 +1,25 @@
 import { json } from "@sveltejs/kit";
 import { saveNote } from "$lib/db/save-note.js";
 
-const expiries = ["viewing", "1h", "24h", "7d", "30d"];
-const modes = ["p", "k", "otp"];
+const expiries = ["viewing", "1h", "24h", "7d", "30d"] as const;
+const modes = ["p", "k", "otp"] as const;
 const MAX_BODY_SIZE = 1_800_000; // allow encrypted payloads with small images while protecting Neon free tier
 const HASH_REGEX = /^[a-f0-9]{64}$/i;
 
 export interface NewNote {
   confirmBeforeViewing: boolean;
-  mode: "p" | "k" | "otp";
+  mode: (typeof modes)[number];
   encrypted: string;
-  exp: "viewing" | "1h" | "24h" | "7d" | "30d";
+  exp: (typeof expiries)[number];
   h: string;
   s: string;
 }
+
+const isMode = (v: unknown): v is NewNote["mode"] =>
+  typeof v === "string" && (modes as readonly string[]).includes(v);
+
+const isExpiry = (v: unknown): v is NewNote["exp"] =>
+  typeof v === "string" && (expiries as readonly string[]).includes(v);
 
 export async function POST({ request }) {
   if (
@@ -42,10 +48,23 @@ export async function POST({ request }) {
     return new Response(null, { status: 400 });
   }
 
+  if (!isMode(mode)) {
+    return new Response(null, { status: 400 });
+  }
+
+  if (!isExpiry(exp)) {
+    return new Response(null, { status: 400 });
+  }
+
+  // h is the client-side authenticator (a 64-char hex hash) required for
+  // password/key modes. OTP notes have no server-side authenticator, so any
+  // value sent for them is ignored and stored as an empty string.
+  let authHash = "";
   if (mode !== "otp") {
     if (typeof h !== "string" || !HASH_REGEX.test(h)) {
       return new Response(null, { status: 400 });
     }
+    authHash = h;
   }
 
   if (mode === "p") {
@@ -54,26 +73,18 @@ export async function POST({ request }) {
     }
   }
 
-  if (!expiries.includes(exp)) {
-    return new Response(null, { status: 400 });
-  }
-
-  if (!modes.includes(mode)) {
-    return new Response(null, { status: 400 });
-  }
-
   const confirmFlag =
     typeof confirmBeforeViewing === "boolean" ? confirmBeforeViewing : false;
 
   const shouldConfirm =
     mode === "p" || exp !== "viewing" ? true : confirmFlag;
 
-  const newNote = {
+  const newNote: NewNote = {
     confirmBeforeViewing: shouldConfirm,
     mode,
     encrypted,
     exp,
-    h,
+    h: authHash,
     s,
   };
 

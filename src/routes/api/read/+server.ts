@@ -1,5 +1,5 @@
 import { json } from "@sveltejs/kit";
-import { readNote } from "$lib/db/read-note";
+import { readNote, burnNote } from "$lib/db/read-note";
 import { hash } from "$lib";
 import { timingSafeEqual } from "node:crypto";
 import { Buffer } from "node:buffer";
@@ -38,7 +38,15 @@ export async function POST({ request }) {
     return json({}, { status: 404 });
   }
 
+  // A one-time note (exp === 0) is burned only after the read is authorized.
+  // burnNote is atomic, so if a concurrent request already consumed the note
+  // we report it as gone rather than serving the content twice.
+  const isOneTime = note.exp === 0;
+
   if (note.mode == "otp") {
+    if (isOneTime && !(await burnNote(id))) {
+      return json({}, { status: 404 });
+    }
     return json({ content: note.encrypted });
   }
 
@@ -53,6 +61,10 @@ export async function POST({ request }) {
 
   if (!isEqual) {
     return json({}, { status: 401 });
+  }
+
+  if (isOneTime && !(await burnNote(id))) {
+    return json({}, { status: 404 });
   }
 
   return json({ content: note.encrypted });

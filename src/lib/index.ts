@@ -43,10 +43,10 @@ export async function encryptWithIV(
   const encrypted = await crypto.subtle.encrypt(
     {
       name: "AES-GCM",
-      iv: iv,
+      iv: iv as BufferSource,
     },
     key,
-    data
+    data as BufferSource
   );
 
   // Convert encrypted data to Base64 so it's easier to work with
@@ -64,10 +64,10 @@ export async function decryptWithIV(
   const decrypted = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
-      iv: iv,
+      iv: iv as BufferSource,
     },
     key,
-    encryptedData
+    encryptedData as BufferSource
   );
 
   // Convert the decrypted ArrayBuffer back to string
@@ -113,6 +113,11 @@ export async function stringToKey(k: string) {
   );
 }
 
+// OWASP-recommended minimum for PBKDF2-HMAC-SHA256 (2023+). This count must
+// stay in sync between encryption (create) and decryption (read); changing it
+// invalidates password-mode notes created with a different value.
+export const PBKDF2_ITERATIONS = 600_000;
+
 export async function deriveKey(
   password: string,
   salt: string
@@ -133,8 +138,8 @@ export async function deriveKey(
   const derivedKey = await crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
-      salt: saltBuffer,
-      iterations: 100000,
+      salt: saltBuffer as BufferSource,
+      iterations: PBKDF2_ITERATIONS,
       hash: "SHA-256",
     },
     importedKey,

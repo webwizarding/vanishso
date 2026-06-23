@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+# Keep individual note URLs out of search indexes.
+Disallow: /n/

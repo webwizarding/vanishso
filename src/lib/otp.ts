@@ -167,6 +167,19 @@ function decode(code: string): string {
   return text.join("");
 }
 
+// Returns false if `text` contains any character the codebook cannot represent.
+// `encode` silently drops such characters, which would corrupt an OTP note, so
+// callers should reject the input instead. Iterates by UTF-16 code unit to
+// match `encode`'s behaviour exactly (e.g. emoji/surrogate pairs are rejected).
+export function canEncode(text: string): boolean {
+  for (let i = 0; i < text.length; i++) {
+    if (codebook.indexOf(text[i]) === -1) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // Encrypt or decrypt a message with a key.
 export function otp(
   message: string,
